@@ -180,18 +180,16 @@ table.hunk { width: 100%; border-collapse: collapse; font-family: var(--mono); f
 /* annotated lines: soft wash, no left bar */
 .dline.has-note .code, .code.has-note { background-color: rgba(214, 161, 74, 0.09); }
 
-/* split view: CSS grid, minmax(0,1fr) halves can't starve each other */
-.split-grid {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px minmax(0, 1fr);
-  font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
-}
-.split-grid .grow { grid-column: 1 / -1; }
-.split-grid .grow-rest { grid-column: 2 / -1; }
-.split-grid .hunk-header {
+/* split view: each row is its own grid so rows size independently;
+   minmax(0,1fr) halves can't starve each other */
+.split { font-family: var(--mono); font-size: 12.5px; line-height: 1.55; }
+.srow { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px minmax(0, 1fr); }
+.srow-full.hunk-header {
   padding: 3px 10px; background: var(--bg-inset); color: var(--faint);
   border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft);
 }
+.srow-full.meta { padding: 0 10px 0 56px; color: var(--faint); font-style: italic; }
+.srow-full.inline-note { padding: 8px 12px; background: var(--bg-inset); }
 .g-gutter { text-align: right; padding: 0 9px; color: var(--faint); user-select: none; white-space: nowrap; }
 .g-code { padding: 0 10px 0 12px; white-space: pre-wrap; word-break: break-word; position: relative; min-width: 0; }
 .g-code .sign { color: var(--faint); padding-right: 4px; }
@@ -199,11 +197,10 @@ table.hunk { width: 100%; border-collapse: collapse; font-family: var(--mono); f
 .g-code.del { background: var(--del-bg); } .g-code.del .sign { color: var(--del-fg); }
 .g-gutter.add { background: var(--add-gutter); }
 .g-gutter.del { background: var(--del-gutter); }
-.g-code.empty, .g-gutter.empty { background: var(--bg-inset); }
+.g-code.blank, .g-gutter.blank { background: var(--bg-inset); }
 .g-code.divide { border-right: 1px solid var(--border-soft); }
 .g-code:hover .add-note { opacity: 1; }
 .g-code.has-note { background-color: rgba(214, 161, 74, 0.09); }
-.split-grid .inline-note { padding: 8px 12px; background: var(--bg-inset); }
 
 /* ---------- inline notes ---------- */
 .inline-note td { padding: 8px 12px; background: var(--bg-inset); }

@@ -318,27 +318,25 @@ function UnifiedView({ file, notes, openForm, setOpenForm, addNote, removeNote }
   )
 }
 
-// Split view uses CSS grid (not a table): minmax(0,1fr) columns can't starve
-// each other, so content always wraps within its half instead of collapsing.
+// Split view: each row is its OWN grid (44px | 1fr | 44px | 1fr). Per-row grids
+// keep columns aligned across rows while letting every row size to its own
+// content — minmax(0,1fr) also stops either half from starving the other.
 function SplitView({ file, notes, openForm, setOpenForm, addNote, removeNote }) {
   return (
-    <div className="split-grid">
+    <div className="split">
       {file.hunks.map((h, hi) => (
         <React.Fragment key={hi}>
-          <div className="hunk-header grow">{h.header}</div>
+          <div className="srow-full hunk-header">{h.header}</div>
           {toSplitRows(h.lines).map((row, ri) => {
             if (row.meta) {
-              return (
-                <React.Fragment key={ri}>
-                  <div className="g-gutter" />
-                  <div className="g-code meta grow-rest">{row.meta.content}</div>
-                </React.Fragment>
-              )
+              return <div key={ri} className="srow-full meta">{row.meta.content}</div>
             }
             return (
               <React.Fragment key={ri}>
-                <SideCell file={file} cell={row.left} side="old" openForm={openForm} setOpenForm={setOpenForm} notes={notes} />
-                <SideCell file={file} cell={row.right} side="new" openForm={openForm} setOpenForm={setOpenForm} notes={notes} />
+                <div className="srow">
+                  <SideCell file={file} cell={row.left} side="old" openForm={openForm} setOpenForm={setOpenForm} notes={notes} />
+                  <SideCell file={file} cell={row.right} side="new" openForm={openForm} setOpenForm={setOpenForm} notes={notes} />
+                </div>
                 {[['old', row.left], ['new', row.right]].map(([side, cell]) => {
                   if (!cell || cell.type === 'context') return null
                   const lineNo = side === 'old' ? cell.oldNo : cell.newNo
@@ -347,10 +345,10 @@ function SplitView({ file, notes, openForm, setOpenForm, addNote, removeNote }) 
                   return (
                     <React.Fragment key={side}>
                       {lineNotes.map((n) => (
-                        <div key={n.id} className="grow inline-note"><NoteCard n={n} removeNote={removeNote} /></div>
+                        <div key={n.id} className="srow-full inline-note"><NoteCard n={n} removeNote={removeNote} /></div>
                       ))}
                       {openForm === formKey && (
-                        <div className="grow inline-note">
+                        <div className="srow-full inline-note">
                           <NoteForm onCancel={() => setOpenForm(null)}
                             onSubmit={(type, body) => addNote({ file: file.path, side, line: lineNo, code: cell.content, type, body })} />
                         </div>
@@ -368,7 +366,7 @@ function SplitView({ file, notes, openForm, setOpenForm, addNote, removeNote }) 
 }
 
 function SideCell({ file, cell, side, openForm, setOpenForm, notes }) {
-  if (!cell) return (<><div className="g-gutter empty" /><div className={'g-code empty' + (side === 'old' ? ' divide' : '')} /></>)
+  if (!cell) return (<><div className="g-gutter blank" /><div className={'g-code blank' + (side === 'old' ? ' divide' : '')} /></>)
   const lineNo = side === 'old' ? cell.oldNo : cell.newNo
   const cls = cell.type === 'context' ? 'context' : side === 'old' ? 'del' : 'add'
   const key = lineKey(file.path, side, lineNo)
