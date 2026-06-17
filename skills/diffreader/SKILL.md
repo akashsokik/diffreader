@@ -59,12 +59,13 @@ script that reads the patch from a temp file and `JSON.stringify`s it. Fields:
 
 ### 4. Launch the reader
 ```
-node "$SERVER" --dir . --open
+node "$SERVER" --dir .
 ```
-Defaults: port 4321, project dir = cwd. Tell the user: review the diff, hover any
-line and click **+** to add a comment / question / change request, add general
-notes, then click **"Send to agent"**. (No browser? They can also download or
-copy the annotations JSON from the UI and paste it back.)
+Defaults: port 4321, project dir = cwd. Print the URL (http://localhost:4321)
+and tell the user to open it, review the diff, hover any line and click **+** to
+add a comment / question / change request, add general notes, then click
+**"Send to agent"**. (No browser? They can also download or copy the annotations
+JSON from the UI and paste it back.)
 
 ### 5. Read annotations back
 When the user confirms they have sent annotations, read
@@ -80,5 +81,7 @@ regenerate `session.json` for another review pass.
 ## Notes
 - Nothing leaves the machine: no backend service, no accounts, no telemetry in
   the tool itself.
-- The server is plain Node `http` with zero npm dependencies; the UI is prebuilt
-  in `assets/dist/`. There is nothing to install or build.
+- Fully auditable: the server is plain Node `http`/`fs` with zero npm
+  dependencies and no process spawning; the UI is a single dependency-free
+  `assets/web/index.html` (vanilla JS, no framework, no `innerHTML`). Nothing to
+  install, build, or compile.

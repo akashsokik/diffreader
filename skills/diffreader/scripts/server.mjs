@@ -6,18 +6,17 @@
 //   POST /api/annotations  -> writes <project>/.diffreader/annotations.json
 //   GET  /api/annotations  -> reads them back (for the agent)
 //
-// The UI is shipped prebuilt next to this file (../assets/dist). Data files are
-// resolved against the target project dir (--dir, default cwd). Node-only; no
-// npm install required.
+// The UI is a single static file shipped next to this server (../assets/web).
+// Data files are resolved against the target project dir (--dir, default cwd).
+// Node-only; nothing to install or build.
 //
 // Usage (from the project being reviewed):
-//   node <skill>/scripts/server.mjs [--port 4321] [--dir .] [--open]
+//   node <skill>/scripts/server.mjs [--port 4321] [--dir .]
 
 import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -31,7 +30,6 @@ const PORT = parseInt(getArg('--port', process.env.DIFFREADER_PORT || '4321'), 1
 // files to disk. Override with --host 0.0.0.0 at your own risk.
 const HOST = getArg('--host', '127.0.0.1')
 const PROJECT_DIR = path.resolve(getArg('--dir', process.cwd()))
-const OPEN = args.includes('--open')
 
 const DATA_DIR = path.join(PROJECT_DIR, '.diffreader')
 const SESSION_FILE = path.join(DATA_DIR, 'session.json')
@@ -41,11 +39,11 @@ const ANNOTATIONS_FILE = path.join(DATA_DIR, 'annotations.json')
 // a couple of fallbacks so this file works if moved.
 const DIST_DIR = path.resolve(
   [
-    path.join(__dirname, '..', 'assets', 'dist'),
-    path.join(__dirname, '..', 'dist'),
-    path.join(__dirname, 'dist'),
+    path.join(__dirname, '..', 'assets', 'web'),
+    path.join(__dirname, '..', 'web'),
+    path.join(__dirname, 'web'),
   ].find((p) => fs.existsSync(path.join(p, 'index.html'))) ||
-    path.join(__dirname, '..', 'assets', 'dist')
+    path.join(__dirname, '..', 'assets', 'web')
 )
 
 // Only serve clients on the loopback interface. Rejecting non-localhost Host
@@ -158,15 +156,6 @@ server.listen(PORT, HOST, () => {
   console.log(`\n  diffreader running at ${url}`)
   console.log(`  project:  ${PROJECT_DIR}`)
   console.log(`  session:  ${fs.existsSync(SESSION_FILE) ? SESSION_FILE : '(none yet)'}`)
-  console.log(`\n  Review the diff, annotate, then click "Send to agent".`)
+  console.log(`\n  Open ${url} in your browser, review the diff, annotate, then click "Send to agent".`)
   console.log(`  Annotations land in ${ANNOTATIONS_FILE}\n`)
-  if (OPEN) openBrowser(url)
 })
-
-function openBrowser(url) {
-  const cmd =
-    process.platform === 'darwin' ? 'open' :
-    process.platform === 'win32' ? 'cmd' : 'xdg-open'
-  const cmdArgs = process.platform === 'win32' ? ['/c', 'start', '', url] : [url]
-  try { spawn(cmd, cmdArgs, { stdio: 'ignore', detached: true }).unref() } catch {}
-}

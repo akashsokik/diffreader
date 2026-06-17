@@ -1,24 +1,14 @@
 {
   "name": "diffreader",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Lightweight git diff reader for human review inside Claude Code / Codex sessions",
+  "description": "Lightweight, dependency-free git diff reader for human review inside Claude Code / Codex sessions",
   "bin": {
     "diffreader": "./server.mjs"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "serve": "node server.mjs"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.11"
+    "serve": "node server.mjs --dir .",
+    "dev": "node server.mjs --dir ."
   }
 }
