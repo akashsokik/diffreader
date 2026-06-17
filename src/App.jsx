@@ -278,6 +278,9 @@ function FileBlock({ file, view, explanation, notes, openForm, setOpenForm, addN
 function UnifiedView({ file, notes, openForm, setOpenForm, addNote, removeNote }) {
   return (
     <table className="hunk">
+      <colgroup>
+        <col className="c-num" /><col className="c-num" /><col />
+      </colgroup>
       <tbody>
         {file.hunks.map((h, hi) => (
           <React.Fragment key={hi}>
@@ -318,6 +321,9 @@ function UnifiedView({ file, notes, openForm, setOpenForm, addNote, removeNote }
 function SplitView({ file, notes, openForm, setOpenForm, addNote, removeNote }) {
   return (
     <table className="hunk split">
+      <colgroup>
+        <col className="c-num" /><col /><col className="c-num" /><col />
+      </colgroup>
       <tbody>
         {file.hunks.map((h, hi) => (
           <React.Fragment key={hi}>

@@ -25,6 +25,13 @@ The UI is optional. An agent can produce `session.json` and consume
   "summary": "Adds POST /login with bcrypt verification and a 5-attempt rate limit.\nSession tokens are signed JWTs valid for 1h.",
   "baseRef": "main",
   "createdAt": "2026-06-17T10:30:00Z",
+  "repo": {
+    "name": "acme/api",
+    "branch": "feat/login",
+    "head": "5d6e7f8a1b2c3d4e5f6a",
+    "headSubject": "Add password login endpoint",
+    "author": "Jane Dev"
+  },
   "diff": "diff --git a/src/auth.js b/src/auth.js\n--- a/src/auth.js\n+++ b/src/auth.js\n@@ ...",
   "files": [
     { "path": "src/auth.js", "explanation": "New login handler. Note the timing-safe compare." }
@@ -40,8 +47,19 @@ The UI is optional. An agent can produce `session.json` and consume
 | `summary`    | no       | the agent's plain-language explanation of the whole change         |
 | `baseRef`    | no       | what the diff is against (`main`, `HEAD`, a commit sha)            |
 | `createdAt`  | no       | ISO timestamp                                                      |
+| `repo`       | no       | git metadata shown in the header (see below)                       |
 | `diff`       | **yes**  | a standard unified diff (output of `git diff`)                     |
 | `files[]`    | no       | per-file notes from the agent, keyed by `path` (the new-side path) |
+
+`repo` (all optional, pulled straight from git — nothing fancy):
+
+| field         | source                                  |
+|---------------|-----------------------------------------|
+| `name`        | `owner/repo` from the remote URL        |
+| `branch`      | `git rev-parse --abbrev-ref HEAD`       |
+| `head`        | `git rev-parse HEAD` (full or short)    |
+| `headSubject` | `git log -1 --format=%s`                |
+| `author`      | `git log -1 --format=%an`               |
 
 ## `.diffreader/annotations.json` (human → agent)
 

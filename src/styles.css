@@ -155,8 +155,9 @@ table.hunk { width: 100%; border-collapse: collapse; font-family: var(--mono); f
 .dline.add { background: var(--add-bg); }
 .dline.del { background: var(--del-bg); }
 .dline.meta { color: var(--faint); font-style: italic; }
+.hunk col.c-num { width: 48px; }
 .gutter {
-  width: 46px; text-align: right; padding: 0 9px;
+  text-align: right; padding: 0 9px;
   color: var(--faint); user-select: none; white-space: nowrap;
   vertical-align: top;
 }
@@ -180,8 +181,7 @@ table.hunk { width: 100%; border-collapse: collapse; font-family: var(--mono); f
 .dline.has-note .code, .code.has-note { background-color: rgba(214, 161, 74, 0.09); }
 
 /* split view */
-table.hunk.split .gutter { width: 44px; }
-table.hunk.split .code { width: calc(50% - 44px); border-right: 1px solid var(--border-soft); }
+table.hunk.split .code { border-right: 1px solid var(--border-soft); }
 .code.empty, .gutter.empty { background: var(--bg-inset); }
 .code.add { background: var(--add-bg); }
 .code.del { background: var(--del-bg); }

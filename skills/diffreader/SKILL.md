@@ -49,6 +49,10 @@ script that reads the patch from a temp file and `JSON.stringify`s it. Fields:
   main thing the human reads first
 - `baseRef`: what you diffed against
 - `createdAt`: ISO timestamp
+- `repo`: git metadata for the header — `name` (owner/repo from the remote
+  URL), `branch` (`git rev-parse --abbrev-ref HEAD`), `head` (`git rev-parse
+  HEAD`), `headSubject` (`git log -1 --format=%s`), `author` (`%an`). All
+  optional; include what git gives you.
 - `diff`: the full unified diff (escaped string)
 - `files`: array of `{ "path", "explanation" }` — give a per-file readout for
   every file in the diff, not just a few
