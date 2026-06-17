@@ -318,53 +318,57 @@ function UnifiedView({ file, notes, openForm, setOpenForm, addNote, removeNote }
   )
 }
 
+// Split view uses CSS grid (not a table): minmax(0,1fr) columns can't starve
+// each other, so content always wraps within its half instead of collapsing.
 function SplitView({ file, notes, openForm, setOpenForm, addNote, removeNote }) {
   return (
-    <table className="hunk split">
-      <colgroup>
-        <col className="c-num" /><col /><col className="c-num" /><col />
-      </colgroup>
-      <tbody>
-        {file.hunks.map((h, hi) => (
-          <React.Fragment key={hi}>
-            <tr className="hunk-header"><td colSpan={4}>{h.header}</td></tr>
-            {toSplitRows(h.lines).map((row, ri) => {
-              if (row.meta) {
-                return <tr key={ri} className="dline meta"><td className="gutter" /><td className="code" colSpan={3}>{row.meta.content}</td></tr>
-              }
+    <div className="split-grid">
+      {file.hunks.map((h, hi) => (
+        <React.Fragment key={hi}>
+          <div className="hunk-header grow">{h.header}</div>
+          {toSplitRows(h.lines).map((row, ri) => {
+            if (row.meta) {
               return (
                 <React.Fragment key={ri}>
-                  <tr className="dline">
-                    <SideCell file={file} cell={row.left} side="old" openForm={openForm} setOpenForm={setOpenForm} notes={notes} />
-                    <SideCell file={file} cell={row.right} side="new" openForm={openForm} setOpenForm={setOpenForm} notes={notes} />
-                  </tr>
-                  {[['old', row.left], ['new', row.right]].map(([side, cell]) => {
-                    if (!cell || cell.type === 'context') return null
-                    const lineNo = side === 'old' ? cell.oldNo : cell.newNo
-                    const formKey = lineKey(file.path, side, lineNo)
-                    const lineNotes = notes.filter((n) => n.side === side && n.line === lineNo && lineNo != null)
-                    return (
-                      <React.Fragment key={side}>
-                        <NoteRows notes={lineNotes} colSpan={4} removeNote={removeNote} />
-                        {openForm === formKey && (
-                          <FormRow colSpan={4} onCancel={() => setOpenForm(null)}
-                            onSubmit={(type, body) => addNote({ file: file.path, side, line: lineNo, code: cell.content, type, body })} />
-                        )}
-                      </React.Fragment>
-                    )
-                  })}
+                  <div className="g-gutter" />
+                  <div className="g-code meta grow-rest">{row.meta.content}</div>
                 </React.Fragment>
               )
-            })}
-          </React.Fragment>
-        ))}
-      </tbody>
-    </table>
+            }
+            return (
+              <React.Fragment key={ri}>
+                <SideCell file={file} cell={row.left} side="old" openForm={openForm} setOpenForm={setOpenForm} notes={notes} />
+                <SideCell file={file} cell={row.right} side="new" openForm={openForm} setOpenForm={setOpenForm} notes={notes} />
+                {[['old', row.left], ['new', row.right]].map(([side, cell]) => {
+                  if (!cell || cell.type === 'context') return null
+                  const lineNo = side === 'old' ? cell.oldNo : cell.newNo
+                  const formKey = lineKey(file.path, side, lineNo)
+                  const lineNotes = notes.filter((n) => n.side === side && n.line === lineNo && lineNo != null)
+                  return (
+                    <React.Fragment key={side}>
+                      {lineNotes.map((n) => (
+                        <div key={n.id} className="grow inline-note"><NoteCard n={n} removeNote={removeNote} /></div>
+                      ))}
+                      {openForm === formKey && (
+                        <div className="grow inline-note">
+                          <NoteForm onCancel={() => setOpenForm(null)}
+                            onSubmit={(type, body) => addNote({ file: file.path, side, line: lineNo, code: cell.content, type, body })} />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
+              </React.Fragment>
+            )
+          })}
+        </React.Fragment>
+      ))}
+    </div>
   )
 }
 
 function SideCell({ file, cell, side, openForm, setOpenForm, notes }) {
-  if (!cell) return (<><td className="gutter empty" /><td className="code empty" /></>)
+  if (!cell) return (<><div className="g-gutter empty" /><div className={'g-code empty' + (side === 'old' ? ' divide' : '')} /></>)
   const lineNo = side === 'old' ? cell.oldNo : cell.newNo
   const cls = cell.type === 'context' ? 'context' : side === 'old' ? 'del' : 'add'
   const key = lineKey(file.path, side, lineNo)
@@ -372,13 +376,13 @@ function SideCell({ file, cell, side, openForm, setOpenForm, notes }) {
   const formKey = key
   return (
     <>
-      <td className={'gutter ' + cls}>{lineNo ?? ''}</td>
-      <td id={'line-' + key} className={'code ' + cls + (has ? ' has-note' : '')}>
+      <div className={'g-gutter ' + cls + (side === 'old' ? ' divide-g' : '')}>{lineNo ?? ''}</div>
+      <div id={'line-' + key} className={'g-code ' + cls + (side === 'old' ? ' divide' : '') + (has ? ' has-note' : '')}>
         <span className="sign">{cls === 'add' ? '+' : cls === 'del' ? '-' : ' '}</span>{cell.content}
         {cell.type !== 'context' && lineNo != null && (
           <AddBtn onClick={() => setOpenForm(openForm === formKey ? null : formKey)} />
         )}
-      </td>
+      </div>
     </>
   )
 }
@@ -387,18 +391,22 @@ function AddBtn({ onClick }) {
   return <button className="add-note" title="Annotate this line" onClick={onClick}>+</button>
 }
 
+function NoteCard({ n, removeNote }) {
+  return (
+    <div className="note-card">
+      <div className="note-head">
+        <span className={'badge ' + n.type}>{n.type}</span>
+        <button className="remove" onClick={() => removeNote(n.id)}>×</button>
+      </div>
+      <div className="note-body">{n.body}</div>
+    </div>
+  )
+}
+
 function NoteRows({ notes, colSpan, removeNote }) {
   return notes.map((n) => (
     <tr key={n.id} className="inline-note">
-      <td colSpan={colSpan}>
-        <div className="note-card">
-          <div className="note-head">
-            <span className={'badge ' + n.type}>{n.type}</span>
-            <button className="remove" onClick={() => removeNote(n.id)}>×</button>
-          </div>
-          <div className="note-body">{n.body}</div>
-        </div>
-      </td>
+      <td colSpan={colSpan}><NoteCard n={n} removeNote={removeNote} /></td>
     </tr>
   ))
 }
