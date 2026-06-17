@@ -12,5 +12,12 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    // Ship the bundled UI UN-minified. The skill commits this build into
+    // assets/dist/, and minified/obfuscated executable content is exactly what
+    // skill security scanners (Snyk) flag as high risk. An un-minified bundle is
+    // readable, auditable JS — our own React app, plain to inspect.
+    minify: false,
+    // No source maps needed; the un-minified output is the source of truth.
+    sourcemap: false,
   },
 })
