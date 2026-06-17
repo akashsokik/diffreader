@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "id": "demo-rate-limit",
+  "title": "Demo: add rate limiting to login",
+  "summary": "This is a built-in demo session so you can see diffreader without an agent.\n\nAdds a simple in-memory rate limiter to the login handler (5 attempts per IP per minute) and switches the token response to an httpOnly cookie.",
+  "baseRef": "main",
+  "createdAt": "2026-06-17T10:30:00Z",
+  "diff": "diff --git a/src/auth.js b/src/auth.js\nindex 1a2b3c4..5d6e7f8 100644\n--- a/src/auth.js\n+++ b/src/auth.js\n@@ -1,8 +1,17 @@\n const bcrypt = require('bcrypt')\n const jwt = require('jsonwebtoken')\n+const attempts = new Map()\n \n+function rateLimit(ip) {\n+  const now = Date.now()\n+  const hits = (attempts.get(ip) || []).filter((t) => now - t < 60000)\n+  hits.push(now)\n+  attempts.set(ip, hits)\n+  return hits.length <= 5\n+}\n+\n async function login(req, res) {\n   const { email, password } = req.body\n+  if (!rateLimit(req.ip)) return res.status(429).json({ error: 'too many attempts' })\n   const user = await db.users.findByEmail(email)\n   if (!user) return res.status(401).json({ error: 'invalid' })\n   const ok = await bcrypt.compare(password, user.hash)\n   if (!ok) return res.status(401).json({ error: 'invalid' })\n   const token = jwt.sign({ uid: user.id }, SECRET, { expiresIn: '1h' })\n-  return res.json({ token })\n+  res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' })\n+  return res.json({ ok: true })\n }\n \n module.exports = { login }\n",
+  "files": [
+    {
+      "path": "src/auth.js",
+      "explanation": "The rate limiter is in-memory, so it resets on restart and is per-process. Fine for the demo; production would use Redis."
+    }
+  ]
+}
