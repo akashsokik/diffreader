@@ -27,6 +27,9 @@ const getArg = (name, fallback) => {
   return i !== -1 && args[i + 1] ? args[i + 1] : fallback
 }
 const PORT = parseInt(getArg('--port', process.env.DIFFREADER_PORT || '4321'), 10)
+// Bind to loopback only by default; this is a single-user local tool that writes
+// files to disk. Override with --host 0.0.0.0 at your own risk.
+const HOST = getArg('--host', '127.0.0.1')
 const PROJECT_DIR = path.resolve(getArg('--dir', process.cwd()))
 const OPEN = args.includes('--open')
 
@@ -36,12 +39,33 @@ const ANNOTATIONS_FILE = path.join(DATA_DIR, 'annotations.json')
 
 // Find the prebuilt UI. Skill layout is scripts/ + assets/dist/, but also try
 // a couple of fallbacks so this file works if moved.
-const DIST_DIR = [
-  path.join(__dirname, '..', 'assets', 'dist'),
-  path.join(__dirname, '..', 'dist'),
-  path.join(__dirname, 'dist'),
-].find((p) => fs.existsSync(path.join(p, 'index.html'))) ||
-  path.join(__dirname, '..', 'assets', 'dist')
+const DIST_DIR = path.resolve(
+  [
+    path.join(__dirname, '..', 'assets', 'dist'),
+    path.join(__dirname, '..', 'dist'),
+    path.join(__dirname, 'dist'),
+  ].find((p) => fs.existsSync(path.join(p, 'index.html'))) ||
+    path.join(__dirname, '..', 'assets', 'dist')
+)
+
+// Only serve clients on the loopback interface. Rejecting non-localhost Host
+// headers defeats DNS-rebinding (a remote page resolving its own name to
+// 127.0.0.1 to reach this server); rejecting cross-origin requests defeats CSRF
+// from any page in the user's browser writing to .diffreader/.
+function isLocalHostHeader(req) {
+  const hostname = (req.headers.host || '').split(':')[0]
+  return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]'
+}
+function isAllowedOrigin(req) {
+  const origin = req.headers.origin
+  if (!origin) return true // non-browser / same-origin navigations omit Origin
+  try {
+    const h = new URL(origin).hostname
+    return h === '127.0.0.1' || h === 'localhost' || h === '::1'
+  } catch {
+    return false
+  }
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -60,8 +84,11 @@ function send(res, status, body, type = 'application/json') {
 function serveStatic(req, res) {
   let urlPath = decodeURIComponent(req.url.split('?')[0])
   if (urlPath === '/') urlPath = '/index.html'
-  const filePath = path.join(DIST_DIR, urlPath)
-  if (!filePath.startsWith(DIST_DIR)) return send(res, 403, 'Forbidden', 'text/plain')
+  const filePath = path.resolve(DIST_DIR, '.' + path.posix.normalize('/' + urlPath))
+  const root = DIST_DIR + path.sep
+  if (filePath !== DIST_DIR && !filePath.startsWith(root)) {
+    return send(res, 403, 'Forbidden', 'text/plain')
+  }
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
@@ -76,6 +103,9 @@ function serveStatic(req, res) {
 }
 
 const server = http.createServer((req, res) => {
+  // DNS-rebinding guard: anything not addressed to localhost is refused.
+  if (!isLocalHostHeader(req)) return send(res, 403, JSON.stringify({ error: 'bad host' }))
+
   if (req.url.startsWith('/api/session') && req.method === 'GET') {
     fs.readFile(SESSION_FILE, 'utf8', (err, data) => {
       if (err) return send(res, 404, JSON.stringify({ error: 'no session' }))
@@ -85,6 +115,12 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.url.startsWith('/api/annotations') && req.method === 'POST') {
+    // CSRF defense: cross-origin writes are rejected, and we require a JSON
+    // content-type (forces a CORS preflight cross-origin, which we never grant).
+    if (!isAllowedOrigin(req)) return send(res, 403, JSON.stringify({ error: 'bad origin' }))
+    if (!(req.headers['content-type'] || '').includes('application/json')) {
+      return send(res, 415, JSON.stringify({ error: 'expected application/json' }))
+    }
     let body = ''
     req.on('data', (c) => {
       body += c
@@ -117,7 +153,7 @@ const server = http.createServer((req, res) => {
   serveStatic(req, res)
 })
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   const url = `http://localhost:${PORT}`
   console.log(`\n  diffreader running at ${url}`)
   console.log(`  project:  ${PROJECT_DIR}`)
