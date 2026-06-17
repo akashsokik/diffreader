@@ -5,6 +5,13 @@
   "summary": "This is a built-in demo session so you can see diffreader without an agent.\n\nAdds a simple in-memory rate limiter to the login handler (5 attempts per IP per minute) and switches the token response to an httpOnly cookie.",
   "baseRef": "main",
   "createdAt": "2026-06-17T10:30:00Z",
+  "repo": {
+    "name": "acme/api",
+    "branch": "feat/login-rate-limit",
+    "head": "5d6e7f8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e",
+    "headSubject": "Add rate limiting to login",
+    "author": "Jane Dev"
+  },
   "diff": "diff --git a/src/auth.js b/src/auth.js\nindex 1a2b3c4..5d6e7f8 100644\n--- a/src/auth.js\n+++ b/src/auth.js\n@@ -1,8 +1,17 @@\n const bcrypt = require('bcrypt')\n const jwt = require('jsonwebtoken')\n+const attempts = new Map()\n \n+function rateLimit(ip) {\n+  const now = Date.now()\n+  const hits = (attempts.get(ip) || []).filter((t) => now - t < 60000)\n+  hits.push(now)\n+  attempts.set(ip, hits)\n+  return hits.length <= 5\n+}\n+\n async function login(req, res) {\n   const { email, password } = req.body\n+  if (!rateLimit(req.ip)) return res.status(429).json({ error: 'too many attempts' })\n   const user = await db.users.findByEmail(email)\n   if (!user) return res.status(401).json({ error: 'invalid' })\n   const ok = await bcrypt.compare(password, user.hash)\n   if (!ok) return res.status(401).json({ error: 'invalid' })\n   const token = jwt.sign({ uid: user.id }, SECRET, { expiresIn: '1h' })\n-  return res.json({ token })\n+  res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' })\n+  return res.json({ ok: true })\n }\n \n module.exports = { login }\n",
   "files": [
     {
